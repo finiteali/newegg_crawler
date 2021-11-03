@@ -3,10 +3,10 @@ from bs4 import BeautifulSoup
 import bs4
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
-from crawler import models
-
-
-# from crawler import models
+from . import models
+from . import service
+from django.conf import settings
+import os
 
 
 class Crawler:
@@ -17,16 +17,19 @@ class Crawler:
 
     @property
     def content(self):
+        # print(self._response.content)
         return self._response.content if self._response else None
 
     def send_request(self):
-        self._response = requests.request(self.method, self.url)
+        self._response = requests.get(self.url)
+        # with open(os.path.join(settings.BASE_DIR, 'crawler', 'snapshots', 'N82E16832233101.html'), 'w+') as f:
+        #     f.write(self._response.content.decode('utf8'))
 
     def make_it_bs4(self):
         return BeautifulSoup(self.content, features="lxml") if self.content else None
 
     def build_url(
-        self,
+            self,
     ):
         raise NotImplementedError
 
@@ -60,17 +63,25 @@ class TitleElement(Element):
         )
 
 
+class ProductIdElement(Element):
+    def parse(self):
+        return (
+            self.dom.body.find("div", id="app").find("ol", class_="breadcrumb").find("li", class_="is-current").find(
+                'em').text
+        )
+
+
 class BrandElement(Element):
     def parse(self):
         brand = (
             (
                 self.dom.body.find("div", id="app")
-                .find("div", class_="page-section-inner")
-                .find("div", class_="product-section")
-                .find("div", class_="product-additional-info display-flex")
+                    .find("div", class_="page-section-inner")
+                    .find("div", class_="product-section")
+                    .find("div", class_="product-additional-info display-flex")
             )
-            .find_all(class_="info-cell")[-1]
-            .text.split()[-1]
+                .find_all(class_="info-cell")[-1]
+                .text.split()[-1]
         )
         # print("*" * 40)
         # print(brand)
@@ -88,8 +99,8 @@ class MainPriceElement(Element):
 class DealPriceElement(Element):
     def parse(self):
         deal = (
-            self.dom.body.find("li", class_="price-current").find("strong").text
-            + self.dom.body.find("li", class_="price-current").find("sup").text
+                self.dom.body.find("li", class_="price-current").find("strong").text
+                + self.dom.body.find("li", class_="price-current").find("sup").text
         )
         deal = deal.replace(",", "")
         deal = float(deal) if deal else None
@@ -100,10 +111,10 @@ class SellerElement(Element):
     def parse(self):
         return (
             self.dom.body.find("div", id="app")
-            .find("div", class_="page-content")
-            .find("div", class_="row-side")
-            .find("strong")
-            .text
+                .find("div", class_="page-content")
+                .find("div", class_="row-side")
+                .find("strong")
+                .text
         )
 
 
@@ -112,10 +123,10 @@ class StarsElement(Element):
         try:
             stars = (
                 self.dom.body.find("div", id="app")
-                .find("div", class_="page-content")
-                .find("div", class_="row-body")
-                .find("div", class_="product-rating")
-                .find("i")["class"][-1][-1]
+                    .find("div", class_="page-content")
+                    .find("div", class_="row-body")
+                    .find("div", class_="product-rating")
+                    .find("i")["class"][-1][-1]
             )
             stars = int(stars)
         except TypeError:
@@ -127,11 +138,11 @@ class CountElement(Element):
     def parse(self):
         count = (
             self.dom.body.find("div", id="app")
-            .find("div", class_="page-content")
-            .find("div", class_="row-body")
-            .find("div", class_="product-reviews")
-            .find("span")
-            .text[1:-1]
+                .find("div", class_="page-content")
+                .find("div", class_="row-body")
+                .find("div", class_="product-reviews")
+                .find("span")
+                .text[1:-1]
         )
         count = count.replace(",", "")
         try:
@@ -145,9 +156,9 @@ class MainImageElement(Element):
     def parse(self):
         return (
             self.dom.body.find("div", id="app")
-            .find("div", class_="row-body")
-            .find("div", class_="swiper-zoom-container")
-            .img["src"]
+                .find("div", class_="row-body")
+                .find("div", class_="swiper-zoom-container")
+                .img["src"]
         )
 
 
@@ -156,11 +167,11 @@ class ImagesElement(Element):
         images = []
         tags = (
             self.dom.body.find("div", id="app")
-            .find("div", class_="row-body")
-            .find("div", class_="product-view")
-            .find("div", class_="swiper-gallery-thumbs")
-            .find("div", class_="swiper-wrapper")
-            .find_all()
+                .find("div", class_="row-body")
+                .find("div", class_="product-view")
+                .find("div", class_="swiper-gallery-thumbs")
+                .find("div", class_="swiper-wrapper")
+                .find_all()
         )
         for tag in tags:
             try:
@@ -175,11 +186,11 @@ class FeaturesElement(Element):
     def parse(self):
         features_ = (
             self.dom.body.find("div", id="app")
-            .find("div", class_="row-body")
-            .find("div", class_="product-wrap")
-            .find("div", class_="product-bullets")
-            .find("ul")
-            .find_all("li")
+                .find("div", class_="row-body")
+                .find("div", class_="product-wrap")
+                .find("div", class_="product-bullets")
+                .find("ul")
+                .find_all("li")
         )
         features = [li.text.strip() for li in features_]
         return features
@@ -204,6 +215,7 @@ class Parser:
 class NewEggParser(Parser):
     title = TitleElement
     brand = BrandElement
+    code = ProductIdElement
     main_price = MainPriceElement
     deal_price = DealPriceElement
     seller = SellerElement
@@ -217,6 +229,7 @@ class NewEggParser(Parser):
         attributes = (
             "title",
             "brand",
+            "code",
             "main_price",
             "deal_price",
             "seller",
@@ -238,6 +251,7 @@ def newegg(request, product_id):
     product = models.Product(
         title=result["title"],
         brand=result["brand"],
+        code=result["code"],
         main_price=result["main_price"],
         deal_price=result["deal_price"],
         seller=result["seller"],
@@ -256,7 +270,12 @@ def newegg(request, product_id):
     return JsonResponse(result)
 
 
-def show(request):
-    product = models.Product.objects.all().last()
+def show(request, product_id):
+    product = models.Product.objects.get(code=product_id)
     features = models.Feature.objects.filter(product=product)
     return render(request, "product.html", {"product": product, "features": features})
+
+
+def get_my_ip(request):
+    result = service.get_my_ip()
+    return JsonResponse(result)

@@ -1,5 +1,7 @@
-<DOCTYPE html>
+<!DOCTYPE html>
+<html>
   <head>
+    <title>Product</title>
     <style>
       img {
         width: 200px;
@@ -34,7 +36,7 @@
     </style>
   </head>
   <body>
-    <h1>Last founded product</h1>
+    <h1>Founded product</h1>
     <img src="{{ product.main_image }}" alt="" />
     <h2> {{ product.title }} </h2>
     <h3 class="brand">{{ product.brand }}</h3>
@@ -44,7 +46,7 @@
       off is <em class="deal_price">${{product.deal_price}}</em>
     </h3>
     {% else %}
-    <h3 class="price">{{ product.deal_price }} $</h3>
+    <h3 class="price">${{ product.deal_price }}</h3>
     {% endif %}
     <h3>
       Rates : This product has <em class="stars">{{product.stars}}</em> stars
@@ -53,4 +55,4 @@
     <h4 class="features">Features :</h4>
     {% for feature in features %} <h5>{{feature.content}}</h5> {% endfor %}
   </body>
-</DOCTYPE>
+</html>
