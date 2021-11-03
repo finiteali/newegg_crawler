@@ -20,6 +20,7 @@ from crawler import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('product/show', views.show),
+    path('myip', views.get_my_ip),
+    path('product/show/<product_id>', views.show),
     path('product/<product_id>', views.newegg)
 ]

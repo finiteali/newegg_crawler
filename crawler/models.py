@@ -4,6 +4,7 @@ from django.db import models
 class Product(models.Model):
     title = models.CharField(max_length=255, null=True)
     brand = models.CharField(max_length=25, null=True)
+    code = models.CharField(max_length=40)
     deal_price = models.FloatField(null=True)
     seller = models.CharField(max_length=255)
     main_price = models.FloatField(null=True)

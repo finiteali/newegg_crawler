@@ -4,7 +4,7 @@ from .models import Product, Feature, Images as Image
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'deal_price', 'seller', 'stars', 'count']
+    list_display = ['id', 'title', 'deal_price', 'seller', 'code', 'stars', 'count']
     sortable_by = ['id']  # the products are sorted by the order of id
     list_filter = ['brand', 'seller']  # we can filter products based on brand and seller
     search_fields = ['title']  # we can search between products by there name

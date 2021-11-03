@@ -4,6 +4,9 @@ import bs4
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from . import models
+from . import service
+from django.conf import settings
+import os
 
 
 class Crawler:
@@ -14,11 +17,13 @@ class Crawler:
 
     @property
     def content(self):
-        print(self._response.content)
+        # print(self._response.content)
         return self._response.content if self._response else None
 
     def send_request(self):
-        self._response = requests.request(self.method, self.url)
+        self._response = requests.get(self.url)
+        # with open(os.path.join(settings.BASE_DIR, 'crawler', 'snapshots', 'N82E16832233101.html'), 'w+') as f:
+        #     f.write(self._response.content.decode('utf8'))
 
     def make_it_bs4(self):
         return BeautifulSoup(self.content, features="lxml") if self.content else None
@@ -55,6 +60,14 @@ class TitleElement(Element):
     def parse(self):
         return (
             self.dom.body.find("div", id="app").find("h1", class_="product-title").text
+        )
+
+
+class ProductIdElement(Element):
+    def parse(self):
+        return (
+            self.dom.body.find("div", id="app").find("ol", class_="breadcrumb").find("li", class_="is-current").find(
+                'em').text
         )
 
 
@@ -202,6 +215,7 @@ class Parser:
 class NewEggParser(Parser):
     title = TitleElement
     brand = BrandElement
+    code = ProductIdElement
     main_price = MainPriceElement
     deal_price = DealPriceElement
     seller = SellerElement
@@ -215,6 +229,7 @@ class NewEggParser(Parser):
         attributes = (
             "title",
             "brand",
+            "code",
             "main_price",
             "deal_price",
             "seller",
@@ -236,6 +251,7 @@ def newegg(request, product_id):
     product = models.Product(
         title=result["title"],
         brand=result["brand"],
+        code=result["code"],
         main_price=result["main_price"],
         deal_price=result["deal_price"],
         seller=result["seller"],
@@ -254,9 +270,12 @@ def newegg(request, product_id):
     return JsonResponse(result)
 
 
-def show(request):
-    product = models.Product.objects.all().last()
+def show(request, product_id):
+    product = models.Product.objects.get(code=product_id)
     features = models.Feature.objects.filter(product=product)
     return render(request, "product.html", {"product": product, "features": features})
 
 
+def get_my_ip(request):
+    result = service.get_my_ip()
+    return JsonResponse(result)
